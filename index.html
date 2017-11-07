@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Title</title>
+    <meta charset="utf-8">
+    <script type="text/javascript" rel="script" src="minx/observer.js"></script>
+    <script type="text/javascript" rel="script" src="minx/watcher.js"></script>
+    <script type="text/javascript" rel="script" src="minx/compile.js"></script>
+    <script type="text/javascript" rel="script" src="minx/minx.js"></script>
+    <script type="text/javascript" rel="script" src="index.js"></script>
+</head>
+<body>
+
+<div id="root">
+    <h3> {{ title }} </h3>
+    <div>
+        <div><a x-attr:href="url">{{ user }}的BLOG</a></div>
+        <button x-on:click="click('Hello')">CLICK TO SAY: Hello</button>
+        <hr>
+        <div x-attr:class="user">相应输入: {{ message }}</div>
+        <input title="input" x-on:input="print" x-model="message">
+        <hr>
+        <ul :id="title">
+            <li x-for="todo:list">
+                <p x-attr:href="url+'/'+todo.id">创建人：{{ todo.creator }} - {{ message }} </p>
+                <!--<input title="input" x-model="todo.creator">-->
+                <p>时间: {{ todo.date }}</p>
+                <p>事件：{{ todo.content }}</p>
+                <ol>
+                    <li x-for="member:todo.members">
+                        <span>{{ member.name }}</span>
+                    </li>
+                </ol>
+            </li>
+        </ul>
+    </div>
+</div>
+
+</body>
+</html>
