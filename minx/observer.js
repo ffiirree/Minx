@@ -8,6 +8,7 @@ methods.forEach(function(method){
         writable: true,
         enumerable: true,
         configurable: true,
+
         value: function() {
             let _arguments = arguments;
             let _len = arguments.length;
@@ -51,31 +52,36 @@ methods.forEach(function(method){
     })
 });
 
+/**
+ * @class
+ */
 class Observer {
     constructor(data) {
         this.value = data;
-        this.dep = new Dep();
+        this.dep = new Depend();
 
         Reflect.defineProperty(data, '__ob__', {
             value: this,
             configurable: true,
             writable: true
         });
+
         Array.isArray(data) ? this.observeArray(data) : this.walk(data);
     }
 
+    /**
+     *
+     * @param value
+     * @returns {*}
+     */
     static observe(value) {
-        if (!value || typeof value !== 'object') {
-            return;
-        }
+        if (!value || typeof value !== 'object')  return;
 
-        let ob;
         if (Object.hasOwnProperty.call(value, '__ob__') && value.__ob__ instanceof Observer) {
-            ob = value.__ob__;
+            return value.__ob__;
         } else {
-            ob = new Observer(value);
+            return new Observer(value);
         }
-        return ob;
     }
 
     observeArray(arr) {
@@ -89,14 +95,14 @@ class Observer {
             let _old = data[key];
 
             let _childOb = Observer.observe(_old);
-            let dep = new Dep();
+            let dep = new Depend();
 
             Reflect.defineProperty(data, key, {
                 enumerable: true,
                 configurable: true,
 
                 get: function () {
-                    if(Dep.target) {
+                    if(Depend.currentWatcher) {
                         dep.depend();
                         if(_childOb)
                             _childOb.dep.depend();

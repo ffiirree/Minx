@@ -1,63 +1,84 @@
 
 class Watcher{
 
-    constructor(vm, expOrFn, cb) {
-        this.cb = cb;
-        this.$vm = vm;
-        this.expOrFn = expOrFn;
+    /**
+     * @param host host[key]
+     * @param key  host[key]
+     * @param cb callback
+     */
+    constructor(host, key, cb) {
+
+        this._cb = cb;
+        this._host = host;
+        this._key = key;
         this.depIds = {};
 
-        this.value = this.get();
+        // 通过触发劫持对象的getter，将自己作为订阅者添加到依赖中
+        Depend.currentWatcher = this;
+        this.value = this._host[this._key];
+        Depend.currentWatcher = null;
     }
 
     update() {
-        this.run();	// 属性值变化收到通知
-    }
+        let _val = this._host[this._key];
+        let _old = this.value;
 
-    run() {
-        let value = this.get(); // 取到最新值
-        let oldVal = this.value;
-        if (value !== oldVal) {
-            this.value = value;
-            this.cb.call(this.$vm, oldVal, value); // 执行Compile中绑定的回调，更新视图
+        if (_val !== _old) {
+            this.value = _val;
+
+            // Update view
+            this._cb.call(this._host, _old, _val);
         }
     }
 
-    get() {
-        Dep.target = this;	// 将当前订阅者指向自己
-        let value = this.$vm[this.expOrFn];	// 触发getter，添加自己到属性订阅器中
-        Dep.target = null;	// 添加完毕，重置
-        return value;
-    }
-
-    addDep(dep) {
-        if (!this.depIds.hasOwnProperty(dep.id)) {
-            dep.addSub(this);
-            this.depIds[dep.id] = dep;
+    addDep(depend) {
+        if (!this.depIds.hasOwnProperty(depend.id)) {
+            depend.add(this);
+            this.depIds[depend.id] = depend;
         }
     }
 }
 
+/**
+ * Observer劫持对象，对象更新(obj.set(val))时，通过Depend.notify通知watcher更新
+ * Watcher在编译时，通过obj.getter获取Depend
+ * @type {number}
+ */
 let uid = 0;
-class Dep{
-    constructor(){
+class Depend {
+    constructor() {
         this.id = ++uid;
-        this.subs = [];
+        this.watchers = [];
     }
 
-    addSub(sub) {
-        this.subs.push(sub);
+    /**
+     * 添加订阅者
+     * @param watcher
+     */
+    add(watcher) {
+        // 防止重复添加Watcher
+        for(let i = 0; i < this.watchers.length; ++i) {
+            let item = this.watchers[i];
+
+            if(item._host === watcher._host && item._key === watcher._key) {
+                return;
+            }
+        }
+        this.watchers.push(watcher);
     }
 
+    /**
+     * 通知所有的订阅者更新视图
+     */
     notify() {
-        this.subs.forEach(function(sub) {
-            sub.update();
+        this.watchers.forEach(watcher => {
+            watcher.update();
         });
     }
 
-    depend(){
-        Dep.target.addDep(this);
+    depend() {
+        Depend.currentWatcher.addDep(this);
     }
 }
 
-Dep.target = null;
+Depend.currentWatcher = null;

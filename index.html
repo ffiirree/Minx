@@ -20,6 +20,7 @@
         <div x-attr:class="user">相应输入: {{ message }}</div>
         <input title="input" x-on:input="print" x-model="message">
         <hr>
+        列表数目: {{ list.length + 1 - 1 }}
         <ul :id="title">
             <li x-for="todo:list">
                 <p x-attr:href="url+'/'+todo.id">创建人：{{ todo.creator }} - {{ message }} </p>

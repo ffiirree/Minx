@@ -4,6 +4,8 @@ class Compile{
         this.$vm = vm;
         this._fns = this.$vm._methods;
         this.$node = node;
+
+
         this.scan(node);
     }
 
@@ -50,27 +52,86 @@ class Compile{
         }
     }
 
+    TemplateEngine(text, context, node) {
+        let re = /{{ *([^}{]+)? *}}/g,
+            reVar = /([a-zA-Z_$][\w\.\$]*)/g,
+            reStr = /('.*')|(".*")/g,
+            _reExp = /[^\?\:]*?[^\?\:]*:[^\?\:]*/g,
+            code = 'var r=[];\n',
+            cursor = 0,
+            match = {};
+
+        let _text = text;
+        let _this = this;
+
+        let add = function(line, isCode) {
+            if(isCode) {
+
+                if(/['"]/g.test(line)) {
+                    let _m,  _c = 0, _res = '';
+
+                    while (_m = reStr.exec(line)) {
+                        let _1 = line.slice(_c, _m.index);
+                        let _2 = _m[1];
+                        _c = _m.index + _m[0].length;
+
+                        _res += _1.replace(reVar, (match, $1) => {
+
+                            let _value = Compile.parse(context, $1);
+                            new Watcher(_value.parent, _value.key, (old, val)=>{
+                                node.textContent = _this.TemplateEngine(_text, context, node);
+                            });
+                            return 'this.' + $1;
+                        });
+                        _res += _2;
+                    }
+                    _res += line.substr(_c, line.length - _c).replace(reVar, (match, $1) => {
+                        let _value = Compile.parse(context, $1);
+                        new Watcher(_value.parent, _value.key, (old, val)=>{
+                            node.textContent = _this.TemplateEngine(_text, context, node);
+                        });
+
+                        return 'this.' + $1;
+                    });
+
+                    code += 'r.push(' + _res + ');\n';
+                }
+                else {
+                    line = line.replace(reVar, (match, $1) => {
+
+                        let _value = Compile.parse(context, $1);
+                        new Watcher(_value.parent, _value.key, (old, val)=>{
+                            node.textContent = _this.TemplateEngine(_text, context, node);
+                        });
+
+                        return 'this.' + $1;
+                    });
+                    code += 'r.push(' + line + ');\n';
+                }
+
+            }
+            else {
+                code += line != '' ? 'r.push("' + line.replace(/"/g, '\\"') + '");\n' : ''
+            }
+
+            return add;
+        };
+        while(match = re.exec(text)) {
+            add(text.slice(cursor, match.index))(match[1], true);
+            cursor = match.index + match[0].length;
+        }
+        add(text.substr(cursor, text.length - cursor));
+        code += 'return r.join("");';
+        return new Function(code.replace(/[\r\t\n]/g, '')).apply(context);
+    }
+
     /**
      * 文本替换
      * @param node
      */
     tmpl(node) {
         let _text = node.textContent;
-        let _re = /{{ *([\w\.]+) *}}/g;
-        if(!_re.test(_text)) return null;
-
-        node.textContent = _text.replace(_re, (match, $1)=>{
-            new Watcher(this.$vm, $1, (old, val)=>{
-                console.log(`${old}>${val}`);
-                node.textContent = _text.replace(_re, (match, $1)=>{
-
-                    return this.parse(this.$vm, $1).value;
-                });
-            });
-            return this.parse(this.$vm, $1).value;
-        });
-
-        // console.log(data)
+        node.textContent = this.TemplateEngine(_text, this.$vm, node);
     }
 
 
@@ -82,7 +143,7 @@ class Compile{
         let _itemDataName = _list.split(':')[0];
         _list = _list.split(':')[1];
 
-        let _data = this.parse(this.$vm, _list);
+        let _data = Compile.parse(this.$vm, _list);
 
         let parent = node.parentElement;
 
@@ -107,7 +168,7 @@ class Compile{
         if(_meta[0] === 'x-attr' || _meta[0] === "") {
 
             if(_meta[1] === 'class') {
-                const _value = this.parse(this.$vm, attr.value);
+                const _value = Compile.parse(this.$vm, attr.value);
                 if(!node.classList.contains(_value.value)){
                     node.classList.add(_value.value);
                 }
@@ -121,7 +182,7 @@ class Compile{
                 let _res = '';
                 attr.value.split('+').forEach((item)=>{
                     if(!/'/g.test(item)) {
-                        let _value = this.parse(this.$vm, item.replace(' ', ''));
+                        let _value = Compile.parse(this.$vm, item.replace(' ', ''));
                         _res += _value.value;
 
                         new Watcher(_value.parent, _value.key, (old, val)=>{
@@ -135,7 +196,7 @@ class Compile{
                 node.setAttribute(_meta[1], _res);
             }
             else {
-                const _value = this.parse(this.$vm, attr.value);
+                const _value = Compile.parse(this.$vm, attr.value);
                 node.setAttribute(_meta[1], _value.value);
 
                 new Watcher(_value.parent, _value.key, (old, val)=>{
@@ -167,7 +228,7 @@ class Compile{
                         _args.push(_matchArg[1].replace(/'/g, ''))
                     }
                     else {
-                        _args.push(this.parse(this.$vm, _matchArg[1]).value);
+                        _args.push(Compile.parse(this.$vm, _matchArg[1]).value);
                     }
                 }
             }
@@ -184,7 +245,7 @@ class Compile{
         node.removeAttribute('x-model');
         node._aindex -= 1;
 
-        let _data = this.parse(this.$vm, _model);
+        let _data = Compile.parse(this.$vm, _model);
         node.tagName === 'INPUT' ? node.value = _data.value : node.innerText = _data.value;
 
         node.addEventListener('input', function (event) {
@@ -195,14 +256,22 @@ class Compile{
         });
     }
 
-    parse(data, key) {
-        const _list = key.split('.');
+    /**
+     *
+     * @param data {{ object }}: { name: 'ffiirree', details: { age: 10 } }
+     * @param path {{ string }}: details.age
+     * @returns {*}
+     */
+    static parse(data, path) {
+        const _list = path.split('.');
 
         let _data = data;
         let _parent;
         let _key;
 
         _list.forEach((item) => {
+            !_data ? console.log('#parse:', _parent, item) : '';
+
             _parent = _data;
             _key = item;
             _data = _data[item];
