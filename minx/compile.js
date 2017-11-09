@@ -5,52 +5,51 @@ class Compile{
         this._fns = this.$vm._methods;
         this.$node = node;
 
-
-        this.scan(node);
+        this.compile(node);
     }
 
-
-    scan(node){
+    compile(node) {
         if(!node.getAttribute('x-for')) {
             let _nodes = node.childNodes;
             for(let i= 0; i < _nodes.length; ++i) {
 
-                let _this = _nodes[i];
-                switch(_this.nodeType) {
+                let _subNode = _nodes[i];
+                switch(_subNode.nodeType) {
 
                     //Element
                     case 1:
 
-                        if(_this.hasAttributes()){
-                            const _attr = _this.attributes;
-                            _this._aindex = 0;
-                            for(; _this._aindex < _attr.length; _this._aindex++) {
+                        if(_subNode.hasAttributes()) {
+                            const _attr = _subNode.attributes;
+                            _subNode._aindex = 0;
+                            for(; _subNode._aindex < _attr.length; _subNode._aindex++) {
 
-                                if(_attr[_this._aindex].name === 'x-model') {
-                                    this.model(_this);
+                                if(_attr[_subNode._aindex].name === 'x-model') {
+                                    this.model(_subNode);
                                 }
                                 else {
-                                    this.attr(_this, _attr[_this._aindex]);
+                                    this.attr(_subNode, _attr[_subNode._aindex]);
                                 }
                             }
                         }
 
-                        if(_this.childNodes.length) {
-                            this.scan(_this);
+                        if(_subNode.childNodes.length) {
+                            this.compile(_subNode);
                         }
                         break;
 
                     // Text
                     case 3:
-                        this.tmpl(_this);
+                        this.tmpl(_subNode);
                         break;
                 }
             }
         }
         else {
-            this.list(node);
+            this.list(node, node.parentElement);
         }
     }
+
 
     TemplateEngine(text, context, node) {
         let re = /{{ *([^}{]+)? *}}/g,
@@ -136,19 +135,25 @@ class Compile{
 
 
 
-    list(node) {
-        let _list = node.getAttribute('x-for');
-        node.removeAttribute('x-for');
+    list(node, parent) {
+        let _node = node.cloneNode(true);
+        parent.innerHTML = '';
+
+        let _list = _node.getAttribute('x-for');
+
 
         let _itemDataName = _list.split(':')[0];
         _list = _list.split(':')[1];
 
         let _data = Compile.parse(this.$vm, _list);
 
-        let parent = node.parentElement;
+        new Watcher(_data.parent, _data.key, (old, val) => {
+            this.list(node.cloneNode(true), parent);
+        });
 
+        _node.removeAttribute('x-for');
         _data.value.forEach(item =>{
-            const _clone = node.cloneNode(true);
+            const _clone = _node.cloneNode(true);
 
             let item_data = {};
             item_data[_itemDataName] = item;
@@ -158,7 +163,6 @@ class Compile{
             parent.appendChild(_clone);
         });
 
-        parent.removeChild(node);
     }
 
 

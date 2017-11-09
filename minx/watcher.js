@@ -7,7 +7,6 @@ class Watcher{
      * @param cb callback
      */
     constructor(host, key, cb) {
-
         this._cb = cb;
         this._host = host;
         this._key = key;
@@ -15,7 +14,7 @@ class Watcher{
 
         // 通过触发劫持对象的getter，将自己作为订阅者添加到依赖中
         Depend.currentWatcher = this;
-        this.value = this._host[this._key];
+        this.value = !Array.isArray(this._host[this._key]) ? this._host[this._key] : this._host[this._key].slice();
         Depend.currentWatcher = null;
     }
 
@@ -23,10 +22,8 @@ class Watcher{
         let _val = this._host[this._key];
         let _old = this.value;
 
-        if (_val !== _old) {
-            this.value = _val;
-
-            // Update view
+        if (_val !== _old || (Array.isArray(this.value)) && !_val.equals(_old)) {
+            this.value = !Array.isArray(_val) ? _val : _val.slice();
             this._cb.call(this._host, _old, _val);
         }
     }

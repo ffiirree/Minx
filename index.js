@@ -44,7 +44,51 @@ window.onload = function () {
             },
             print: function (event) {
                 console.log(event)
+            },
+            push: function () {
+                minx_data.list.push({
+                    id: 3,
+                    creator: 'zlq',
+                    content: 'write Observer',
+                    status: 'undone',
+                    date: '2017-11-9',
+                    members: [
+                        { name: 'zz' },
+                        { name: '2333' }
+                    ]
+                });
+
+            },
+            pop: function () {
+                minx_data.list.pop();
+            },
+            reverse: function () {
+                minx_data.list.reverse();
+            },
+            shift: function () {
+                minx_data.list.shift();
+            },
+            unshift: function () {
+                minx_data.list.unshift({
+                    id: 0,
+                    creator: 'zhang',
+                    content: 'write Observer',
+                    status: 'undone',
+                    date: '2017-11-9',
+                    members: [
+                        { name: '45345345' },
+                        { name: '4543532' }
+                    ]
+                });
+            },
+            splice: function () {
+                minx_data.list.splice(1, 2);
+            },
+            sort: function () {
+                minx_data.list.sort();
             }
         }
     });
+
+    console.log(minx);
 };
