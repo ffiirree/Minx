@@ -6,7 +6,7 @@
  - [y] {{ xxx }}
  - [n] x-html
  - [y] x-model
- - [n] x-if
+ - [y] x-if
  - [y] x-for
  - [y] :/x-attr:[attr]
  - [y] x-on:[event]
@@ -51,3 +51,22 @@
 ```html
 <button x-on:click="click('Hello')">CLICK TO SAY: Hello</button>
 ``` 
+
+#### x-if: 是否渲染该节点
+```html
+<div x-if="value">是否显示</div>
+```
+
+### Router.hash
+```javascript
+// 获取hash值
+let _hash = Router.hash.value;
+
+// 设置hash值
+Router.hash.value = { scope: 0, page: 2 }; // url#!/scope=0&page=2
+
+// 获取hash参数值
+Router.hash.get('scope'); // 0
+Router.hash.get('page');  // 2
+
+```

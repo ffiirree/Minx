@@ -27,6 +27,9 @@ class Compile{
                                 if(_attr[_subNode._aindex].name === 'x-model') {
                                     this.model(_subNode);
                                 }
+                                else if(_attr[_subNode._aindex].name === 'x-if') {
+                                    this.xif(_subNode);
+                                }
                                 else {
                                     this.attr(_subNode, _attr[_subNode._aindex]);
                                 }
@@ -133,6 +136,19 @@ class Compile{
         node.textContent = this.TemplateEngine(_text, this.$vm, node);
     }
 
+    xif(node) {
+        const _cond = node.getAttribute('x-if');
+        node.removeAttribute('x-if');
+        node._aindex -= 1;
+
+        const _value = Compile.parse(this.$vm, _cond);
+
+        node.style.visibility = _value.value ? 'visible' : 'hidden';
+
+        new Watcher(_value.parent, _value.key, (old, val)=>{
+            node.style.visibility = val ? 'visible' : 'hidden';
+        });
+    }
 
 
     list(node, parent) {
@@ -262,8 +278,8 @@ class Compile{
 
     /**
      *
-     * @param data {{ object }}: { name: 'ffiirree', details: { age: 10 } }
-     * @param path {{ string }}: details.age
+     * @param data {object}: { name: 'ffiirree', details: { age: 10 } }
+     * @param path {string}: details.age
      * @returns {*}
      */
     static parse(data, path) {
