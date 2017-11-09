@@ -31,7 +31,9 @@ class Compile{
                                     this.xif(_subNode);
                                 }
                                 else {
-                                    this.attr(_subNode, _attr[_subNode._aindex]);
+                                    _attr[_subNode._aindex].name.split(':')[0] === 'x-on'
+                                        ? this.event(_subNode, _attr[_subNode._aindex])
+                                        : this.attr(_subNode, _attr[_subNode._aindex]);
                                 }
                             }
                         }
@@ -178,7 +180,6 @@ class Compile{
 
             parent.appendChild(_clone);
         });
-
     }
 
 
@@ -187,47 +188,38 @@ class Compile{
 
         if(_meta[0] === 'x-attr' || _meta[0] === "") {
 
-            if(_meta[1] === 'class') {
-                const _value = Compile.parse(this.$vm, attr.value);
-                if(!node.classList.contains(_value.value)){
-                    node.classList.add(_value.value);
+            // callback
+            let _callback = _meta[1] === 'class'
+                ? (old, val) => {  node.classList.remove(old);  node.classList.add(val); } // class
+                : (old, val) => node.setAttribute(attr.name.split(':')[1], val);           // others
+
+            let _res = '';
+            attr.value.split('+').forEach((item)=>{
+                if(!/'/g.test(item)) {
+                    let _value = Compile.parse(this.$vm, item.replace(' ', ''));
+                    _res += _value.value;
+
+                    new Watcher(_value.parent, _value.key, _callback);
                 }
+                else {
+                    _res += item.replace(/'/g, '');
+                }
+            });
 
-                new Watcher(this.$vm, attr.value, (old, val)=>{
-                    node.classList.remove(old);
-                    node.classList.add(val);
-                });
-            }
-            else if(_meta[1] === 'href') {
-                let _res = '';
-                attr.value.split('+').forEach((item)=>{
-                    if(!/'/g.test(item)) {
-                        let _value = Compile.parse(this.$vm, item.replace(' ', ''));
-                        _res += _value.value;
-
-                        new Watcher(_value.parent, _value.key, (old, val)=>{
-                            node.setAttribute(attr.name.split(':')[1], val);
-                        });
-                    }
-                    else {
-                        _res += item.replace(/'/g, '');
-                    }
-                });
-                node.setAttribute(_meta[1], _res);
-            }
-            else {
-                const _value = Compile.parse(this.$vm, attr.value);
-                node.setAttribute(_meta[1], _value.value);
-
-                new Watcher(_value.parent, _value.key, (old, val)=>{
-                    node.setAttribute(attr.name.split(':')[1], val);
-                });
-            }
+            // add attribute
+            _meta[1] === 'class'
+                ? !node.classList.contains(_res) ? node.classList.add(_res) : ''    // class
+                : node.setAttribute(_meta[1], _res);                                // others
 
             node.removeAttribute(attr.name);
             node._aindex -= 1;
         }
-        else if(_meta[0] === 'x-on') {
+    }
+
+    event(node, attr) {
+        let _meta = attr.name.split(':');
+
+        if(_meta[0] === 'x-on') {
             let _reName = /([\w\$]+)/,
                 _reArgs = /\(([^\(\)]+)\)/,
                 _reArg = /([\w\.\$\']+)/g;
@@ -244,12 +236,10 @@ class Compile{
                 let _matchArg;
                 while(_matchArg = _reArg.exec(_argsText)) {
 
-                    if(/'/g.test(_matchArg[1])) {
-                        _args.push(_matchArg[1].replace(/'/g, ''))
-                    }
-                    else {
-                        _args.push(Compile.parse(this.$vm, _matchArg[1]).value);
-                    }
+                    !/'/g.test(_matchArg[1])
+                        ? _args.push(Compile.parse(this.$vm, _matchArg[1]).value)
+                        : _args.push(_matchArg[1].replace(/'/g, '')) ;
+
                 }
             }
 
