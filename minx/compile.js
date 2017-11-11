@@ -9,49 +9,52 @@ class Compile{
     }
 
     compile(node) {
-        if(!node.getAttribute('x-for')) {
-            let _nodes = node.childNodes;
-            for(let i= 0; i < _nodes.length; ++i) {
-
-                let _subNode = _nodes[i];
-                switch(_subNode.nodeType) {
-
-                    //Element
-                    case 1:
-
-                        if(_subNode.hasAttributes()) {
-                            const _attr = _subNode.attributes;
-                            _subNode._aindex = 0;
-                            for(; _subNode._aindex < _attr.length; _subNode._aindex++) {
-
-                                if(_attr[_subNode._aindex].name === 'x-model') {
-                                    this.model(_subNode);
-                                }
-                                else if(_attr[_subNode._aindex].name === 'x-if') {
-                                    this.xif(_subNode);
-                                }
-                                else {
-                                    _attr[_subNode._aindex].name.split(':')[0] === 'x-on'
-                                        ? this.event(_subNode, _attr[_subNode._aindex])
-                                        : this.attr(_subNode, _attr[_subNode._aindex]);
-                                }
-                            }
-                        }
-
-                        if(_subNode.childNodes.length) {
-                            this.compile(_subNode);
-                        }
-                        break;
-
-                    // Text
-                    case 3:
-                        this.tmpl(_subNode);
-                        break;
+        // 非，列表，编译本节点
+        switch (node.nodeType) {
+            // DOM节点
+            case 1:
+                // x-for优先级最高，因为其他的属性可能会用到列表中的数据
+                // <div x-for="item:lost" :id="list.id"></div>, :id用到了数组项数据
+                // x-for中添加的新节点都会再次被编译
+                // 根节点不能是x-for，这样会生成多个根节点。。。
+                if(node.getAttribute('x-for')) {
+                    this.list(node);
+                    return ;
                 }
-            }
-        }
-        else {
-            this.list(node, node.parentElement);
+
+                if(node.hasAttributes()) {
+                    node.$aindex = 0;
+                    for(; node.$aindex < node.attributes.length; ++node.$aindex) {
+                        let _attr = node.attributes[node.$aindex];
+
+                        switch (_attr.name) {
+                            case 'x-model':
+                                this.model(node);
+                                break;
+
+                            case 'x-if':
+                                this.xif(node);
+                                break;
+
+                            default:
+                                _attr.name.split(':')[0] === 'x-on'
+                                    ? this.event(node, _attr) : this.attr(node, _attr);
+                                break;
+                        }
+                    }
+                }
+
+                node.$index = 0;
+                for(; node.$index < node.childNodes.length; ++node.$index) {
+                    this.compile(node.childNodes[node.$index]);
+                }
+
+                break;
+
+            // 文本节点
+            case 3:
+                this.tmpl(node);
+                break;
         }
     }
 
@@ -141,7 +144,7 @@ class Compile{
     xif(node) {
         const _cond = node.getAttribute('x-if');
         node.removeAttribute('x-if');
-        node._aindex -= 1;
+        node.$aindex -= 1;
 
         const _value = Compile.parse(this.$vm, _cond);
 
@@ -153,33 +156,70 @@ class Compile{
     }
 
 
-    list(node, parent) {
-        let _node = node.cloneNode(true);
-        parent.innerHTML = '';
+    // 完全编译父节点会造成问题
+    // 一个父节点下有两个，更新时，由于第二个会保存第一个第一次渲染的效果，所以，会覆盖掉第一个的更新结果
+    list(node) {
+        let _attr = node.getAttribute('x-for');
+        node.removeAttribute('x-for');
 
-        let _list = _node.getAttribute('x-for');
+        let _itemName = _attr.split(':')[0];
+        let _listName = _attr.split(':')[1];
 
+        let _data = Compile.parse(this.$vm, _listName);
 
-        let _itemDataName = _list.split(':')[0];
-        _list = _list.split(':')[1];
+        // 保存
+        let _parent = node.parentNode;
+        let _subs = [];
 
-        let _data = Compile.parse(this.$vm, _list);
-
-        new Watcher(_data.parent, _data.key, (old, val) => {
-            this.list(node.cloneNode(true), parent);
-        });
-
-        _node.removeAttribute('x-for');
         _data.value.forEach(item =>{
-            const _clone = _node.cloneNode(true);
+            const _clone = node.cloneNode(true);
+            _clone.removeAttribute('x-for');
 
             let item_data = {};
-            item_data[_itemDataName] = item;
+            item_data[_itemName] = item;
             item_data.__proto__ = this.$vm;
             let _c = new Compile(_clone, item_data);
 
-            parent.appendChild(_clone);
+            _subs.push(_clone);
+            node.parentNode.insertBefore(_clone, node);
+            node.parentNode.$index += 1;
         });
+
+
+        let _this = this;
+        // anchor
+        let anchor = document.createTextNode('');
+        !function (node_, anchor_, subs) {
+
+            // 方法：
+            // 创建一个空文本节点作为插入锚点
+            // 更新时将之前的删除
+            // 根据新的数据添加
+            new Watcher(_data.parent, _data.key, (old, val) => {
+
+                // 删掉之前渲染的节点
+                subs.forEach(_sub=>{
+                    _sub.remove();
+                });
+
+                subs = [];
+                // 重新渲染
+                val.forEach(item =>{
+                    const _clone = node_.cloneNode(true);
+
+                    let item_data = {};
+                    item_data[_itemName] = item;
+                    item_data.__proto__ = _this.$vm;
+                    let _c = new Compile(_clone, item_data);
+
+                    subs.push(_clone);
+                    anchor_.parentNode.insertBefore(_clone, anchor_);
+                });
+            });
+        }(node.cloneNode(true), anchor, _subs);
+
+        node.parentNode.insertBefore(anchor, node);
+        node.parentNode.removeChild(node);
     }
 
 
@@ -212,7 +252,7 @@ class Compile{
                 : node.setAttribute(_meta[1], _res);                                // others
 
             node.removeAttribute(attr.name);
-            node._aindex -= 1;
+            node.$aindex -= 1;
         }
     }
 
@@ -244,7 +284,7 @@ class Compile{
             }
 
             node.removeAttribute(attr.name);
-            node._aindex -= 1;
+            node.$aindex -= 1;
             node.addEventListener(_meta[1], this._fns[_fnName].bind(node, _args));
         }
     }
@@ -253,7 +293,7 @@ class Compile{
     model(node) {
         const _model = node.getAttribute('x-model');
         node.removeAttribute('x-model');
-        node._aindex -= 1;
+        node.$aindex -= 1;
 
         let _data = Compile.parse(this.$vm, _model);
         node.tagName === 'INPUT' ? node.value = _data.value : node.innerText = _data.value;

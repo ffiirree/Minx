@@ -3,7 +3,7 @@ window.onload = function () {
     let root = document.querySelector('#root');
 
     let minx_data = {
-        title: 'Minx Test',
+        title: 'Minx-Test',
         user: 'ffiirree',
         message: "Minx is a MVVM framework.",
         url: 'https://firstsnow.me',
@@ -92,3 +92,4 @@ window.onload = function () {
 
     console.log(minx);
 };
+

@@ -8,17 +8,19 @@
     <script type="text/javascript" rel="script" src="minx/compile.js"></script>
     <script type="text/javascript" rel="script" src="minx/minx.js"></script>
     <script type="text/javascript" rel="script" src="index.js"></script>
+    <script src="https://unpkg.com/vue"></script>
 </head>
 <body>
 
-<div id="root">
+<div id="root" :class="title">
     <h3> {{ title }} </h3>
     <div>
         <div><a x-attr:href="url">{{ user }}的BLOG</a></div>
         <button x-on:click="click('Hello')">CLICK TO SAY: Hello</button>
         <hr>
         <div x-attr:class="user">相应输入: {{ message }}</div>
-        <input title="input" x-on:input="print" x-model="message">
+        <div x-attr:class="user">相应输入: {{ message }}</div>
+        <input title="input" x-model="message">
         <hr>
         列表数目: {{ list.length + 1 - 1 }}
         <ol>
@@ -42,9 +44,39 @@
                     </li>
                 </ol>
             </li>
+            <li>mid</li>
+            <li x-for="todo:list" >
+                <p x-attr:href="url+'/'+todo.id">创建人：{{ todo.creator }} - {{ message }} </p>
+                <!--<input title="input" x-model="todo.creator">-->
+                <p>时间: {{ todo.date }}</p>
+                <p>事件：{{ todo.content }}</p>
+                <ol>
+                    <li x-for="member:todo.members">
+                        <span>{{ member.name }}</span>
+                    </li>
+                </ol>
+            </li>
         </ul>
+
+        <div :class="title">
+            <div>UP</div>
+            <div x-for="todo:list">
+                <p x-attr:href="url+'/'+todo.id">创建人：{{ todo.creator }} - {{ message }} </p>
+                <!--<input title="input" x-model="todo.creator">-->
+                <p>时间: {{ todo.date }}</p>
+                <p>事件：{{ todo.content }}</p>
+                <!--<ol>-->
+                    <!--<li x-for="member:todo.members">-->
+                        <!--<span>{{ member.name }}</span>-->
+                    <!--</li>-->
+                <!--</ol>-->
+            </div>
+            <div>DOWN</div>
+        </div>
+
     </div>
 </div>
+
 
 </body>
 </html>

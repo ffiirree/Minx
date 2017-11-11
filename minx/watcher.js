@@ -30,6 +30,7 @@ class Watcher{
 
     addDep(depend) {
         if (!this.depIds.hasOwnProperty(depend.id)) {
+            // console.log(depend, ' add watcher ', this);
             depend.add(this);
             this.depIds[depend.id] = depend;
         }
@@ -53,14 +54,6 @@ class Depend {
      * @param watcher
      */
     add(watcher) {
-        // 防止重复添加Watcher
-        for(let i = 0; i < this.watchers.length; ++i) {
-            let item = this.watchers[i];
-
-            if(item._host === watcher._host && item._key === watcher._key) {
-                return;
-            }
-        }
         this.watchers.push(watcher);
     }
 
