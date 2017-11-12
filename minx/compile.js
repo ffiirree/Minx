@@ -26,7 +26,6 @@ class Compile{
     }
 
     compile(node) {
-        // 非，列表，编译本节点
         switch (node.nodeType) {
             // DOM节点
             case 1:
@@ -93,7 +92,6 @@ class Compile{
                     node_.textContent = template(text_, _this.$vm);
                 })
             })
-            // new Watcher()
         }(node, _text);
     }
 
@@ -133,6 +131,7 @@ class Compile{
                     continue;
                 }
 
+                // 括号()
                 if(cap = path.pal_.exec(str) || path.par_.exec(str)){
                     str = str.substring(cap[0].length);
                     // console.log('##sp:', cap, str);
@@ -167,6 +166,7 @@ class Compile{
                     console.log('!!!error!!!');
                 }
 
+                //　数字
                 if(cap = path.num_.exec(str)) {
                     str = str.substring(cap[0].length);
                     // console.log('##number:', cap, str);
@@ -243,8 +243,6 @@ class Compile{
     }
 
 
-    // 完全编译父节点会造成问题
-    // 一个父节点下有两个，更新时，由于第二个会保存第一个第一次渲染的效果，所以，会覆盖掉第一个的更新结果
     list(node) {
         let _attr = node.getAttribute('x-for');
         node.removeAttribute('x-for');
@@ -396,9 +394,9 @@ class Compile{
     }
 
     /**
-     *
+     * 根据path从data中取出数据
      * @param data {object}: { name: 'ffiirree', details: { age: 10 } }
-     * @param path {string}: details.age
+     * @param path {string}: details.age，dot作为分割
      * @returns {*}
      */
     static getValue(data, path) {
@@ -423,10 +421,10 @@ class Compile{
                 return _data === data ? null : { value: _data, parent: _parent, key: _key };
             }
 
-            // if(!_data || !_data[item]){
-            //     console.log('#getValue:', _parent, item);
-            //     return null;
-            // }
+            if(!_data || !(item in _data)){
+                console.log('#getValue:', _parent, item);
+                return null;
+            }
 
             _parent = _data;
             _key = item;

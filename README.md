@@ -17,7 +17,7 @@
  <h3> {{ title }} </h3>
 ```
 #### 表达式
-```html
+```javascript
 {{ age + 1 }}
 {{ age ? 'YES' : 'NO' }}
 {{ fns['method']('hello') }}
@@ -37,8 +37,7 @@
 ```
 
 #### x-attr:[attr]: 为节点添加属性
-除了`x-attr:href`之外[attr]暂时只为一个变量值，<br>
-`x-attr:href`可以使用字符串进行拼接
+可以使用字符串进行拼接
 ```html
 <ul :id="title">
 <div><a x-attr:href="url">{{ user }}的BLOG</a></div>
