@@ -265,7 +265,9 @@ class Compile{
             let item_data = {};
             item_data[_itemName] = item;
             item_data.__proto__ = this.$vm;
-            let _c = new Compile(_clone, item_data);
+
+            new Observer(item_data);
+            new Compile(_clone, item_data);
 
             _subs.push(_clone);
             node.parentNode.insertBefore(_clone, node);
@@ -421,10 +423,10 @@ class Compile{
                 return _data === data ? null : { value: _data, parent: _parent, key: _key };
             }
 
-            if(!_data || !_data[item]){
-                console.log('#getValue:', _parent, item);
-                return null;
-            }
+            // if(!_data || !_data[item]){
+            //     console.log('#getValue:', _parent, item);
+            //     return null;
+            // }
 
             _parent = _data;
             _key = item;

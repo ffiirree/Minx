@@ -34,7 +34,7 @@
         <ul :id="title">
             <li x-for="todo:list">
                 <p x-attr:href="url+'/'+todo.id">创建人：{{ todo.creator }} - {{ message }} </p>
-                <!--<input title="input" x-model="todo.creator">-->
+                <input title="input" x-model="todo.creator">
                 <p>时间: {{ todo.date }}</p>
                 <p>事件：{{ todo.content }}</p>
                 <ol>
@@ -51,7 +51,7 @@
                 <p>事件：{{ todo.content }}</p>
                 <ol>
                     <li x-for="member:todo.members">
-                        <span>{{ member.name }}</span>
+                        <span>{{ member.name }} {{message}}</span>
                     </li>
                 </ol>
             </li>
