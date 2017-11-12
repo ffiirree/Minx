@@ -1,3 +1,20 @@
+//　支持表达式
+function template(text, context) {
+    let re = /{{ *([^}{]+)? *}}/g, code = 'var $$out=[];\nwith(this){', cursor = 0, match;
+    let add = function(line, js) {
+        js? (code += '$$out.push(' + line + ');\n') :
+            (code += line != '' ? '$$out.push("' + line.replace(/"/g, '\\"') + '");\n' : '');
+        return add;
+    };
+    while(match = re.exec(text)) {
+        add(text.slice(cursor, match.index))(match[1], true);
+        cursor = match.index + match[0].length;
+    }
+    add(text.substr(cursor, text.length - cursor));
+    code += '};\nreturn $$out.join("");';
+    return new Function(code.replace(/[\r\t\n]/g, '')).apply(context);
+}
+
 
 class Compile{
     constructor(node, vm) {
@@ -59,86 +76,156 @@ class Compile{
     }
 
 
-    TemplateEngine(text, context, node) {
-        let re = /{{ *([^}{]+)? *}}/g,
-            reVar = /([a-zA-Z_$][\w\.\$]*)/g,
-            reStr = /('.*')|(".*")/g,
-            _reExp = /[^\?\:]*?[^\?\:]*:[^\?\:]*/g,
-            code = 'var r=[];\n',
-            cursor = 0,
-            match = {};
-
-        let _text = text;
-        let _this = this;
-
-        let add = function(line, isCode) {
-            if(isCode) {
-
-                if(/['"]/g.test(line)) {
-                    let _m,  _c = 0, _res = '';
-
-                    while (_m = reStr.exec(line)) {
-                        let _1 = line.slice(_c, _m.index);
-                        let _2 = _m[1];
-                        _c = _m.index + _m[0].length;
-
-                        _res += _1.replace(reVar, (match, $1) => {
-
-                            let _value = Compile.parse(context, $1);
-                            new Watcher(_value.parent, _value.key, (old, val)=>{
-                                node.textContent = _this.TemplateEngine(_text, context, node);
-                            });
-                            return 'this.' + $1;
-                        });
-                        _res += _2;
-                    }
-                    _res += line.substr(_c, line.length - _c).replace(reVar, (match, $1) => {
-                        let _value = Compile.parse(context, $1);
-                        new Watcher(_value.parent, _value.key, (old, val)=>{
-                            node.textContent = _this.TemplateEngine(_text, context, node);
-                        });
-
-                        return 'this.' + $1;
-                    });
-
-                    code += 'r.push(' + _res + ');\n';
-                }
-                else {
-                    line = line.replace(reVar, (match, $1) => {
-
-                        let _value = Compile.parse(context, $1);
-                        new Watcher(_value.parent, _value.key, (old, val)=>{
-                            node.textContent = _this.TemplateEngine(_text, context, node);
-                        });
-
-                        return 'this.' + $1;
-                    });
-                    code += 'r.push(' + line + ');\n';
-                }
-
-            }
-            else {
-                code += line != '' ? 'r.push("' + line.replace(/"/g, '\\"') + '");\n' : ''
-            }
-
-            return add;
-        };
-        while(match = re.exec(text)) {
-            add(text.slice(cursor, match.index))(match[1], true);
-            cursor = match.index + match[0].length;
-        }
-        add(text.substr(cursor, text.length - cursor));
-        code += 'return r.join("");';
-        return new Function(code.replace(/[\r\t\n]/g, '')).apply(context);
-    }
-
     /**
      * 文本替换
      * @param node
      */
     tmpl(node) {
         let _text = node.textContent;
-        node.textContent = this.TemplateEngine(_text, this.$vm, node);
+
+        node.textContent = template(_text, this.$vm);
+
+        let _this = this;
+        !function (node_, text_) {
+            let res = _this.parse(_text, _this.$vm);
+            res.forEach(item=>{
+                new Watcher(item.parent, item.key, (old, val) => {
+                    node_.textContent = template(text_, _this.$vm);
+                })
+            })
+            // new Watcher()
+        }(node, _text);
+    }
+
+    parse(text, data) {
+        let re = /{{ *([^}{]+)? *}}/g,  match;
+        let _res = [];
+        let path = {
+                var_: /^[a-zA-Z\$_][\w\$]*/,
+                str_: /^\'.*?\'|^\".*?\"/,
+                dot_: /^\./,
+                var2_: /^\['([a-zA-Z\$_][\w\$]*)'\]/,
+                var3_: /^\["([a-zA-Z\$_][\w\$]*)"\]/,
+                spa_: /^ /,
+                pal_: /^\(/,
+                par_: /^\)/,
+                op_: /^(\+|-|\*|\/|\|\&|\%|\^|\!|>|<|\?|:|!==|===|>=|<=)/,
+                num_: /^\d+/,
+                com_: /^,/
+            };
+
+
+
+        let walk = function (str) {
+            let cap;
+            while(str){
+                // 空格
+                if(cap = path.spa_.exec(str)){
+                    str = str.substring(cap[0].length);
+                    // console.log('##space:', cap, str);
+                    continue;
+                }
+
+                // 逗号
+                if(cap = path.com_.exec(str)){
+                    str = str.substring(cap[0].length);
+                    // console.log('##com:', cap, str);
+                    continue;
+                }
+
+                if(cap = path.pal_.exec(str) || path.par_.exec(str)){
+                    str = str.substring(cap[0].length);
+                    // console.log('##sp:', cap, str);
+                    continue;
+                }
+
+                // 字符串
+                if(cap = path.str_.exec(str)) {
+                    str = str.substring(cap[0].length);
+                    // console.log('##string:', cap, str);
+                    continue;
+                }
+
+                // 操作符
+                if(cap = path.op_.exec(str)) {
+                    str = str.substring(cap[0].length);
+                    // console.log('##operator:', cap, str);
+                    continue;
+                }
+
+                // 操作符
+                if(cap = path.dot_.exec(str)) {
+                    str = str.substring(cap[0].length);
+                    // console.log('##dot:', cap, str);
+
+                    if(cap = path.var_.exec(str)) {
+                        str = str.substring(cap[0].length);
+                        // console.log('##var:', cap, str);
+                        continue;
+                    }
+
+                    console.log('!!!error!!!');
+                }
+
+                if(cap = path.num_.exec(str)) {
+                    str = str.substring(cap[0].length);
+                    // console.log('##number:', cap, str);
+                    continue;
+                }
+
+                // 变量
+                if(cap = path.var_.exec(str)) {
+                    let _path = '';
+
+                    str = str.substring(cap[0].length);
+                    _path += cap[0];
+                    // console.log('##var:', cap, str);
+
+                    while (str) {
+
+                        if(cap = path.var2_.exec(str) || path.var3_.exec(str)) {
+                            str = str.substring(cap[0].length);
+                            _path += '.' + cap[1];
+                            // console.log('##var:', cap, str);
+                            continue;
+                        }
+
+                        if(cap = path.dot_.exec(str)) {
+                            str = str.substring(cap[0].length);
+                            _path += '.';
+                            // console.log('##dot:', cap, str);
+
+                            if(cap = path.var_.exec(str)) {
+                                str = str.substring(cap[0].length);
+                                _path += cap[0];
+                                // console.log('##var:', cap, str);
+                                continue;
+                            }
+
+                            console.log('!!!error!!!');
+                            return _res;
+                        }
+
+                        break;
+                    }
+
+                    // console.log(data, _path);
+                    let value = Compile.getValue(data, _path);
+                    value && _res.push(value);
+
+                    continue;
+                }
+
+                console.log('error');
+                return _res;
+            }
+        };
+
+        while(match = re.exec(text)) {
+            walk(match[1]);
+        }
+
+        return _res;
     }
 
     xif(node) {
@@ -146,7 +233,7 @@ class Compile{
         node.removeAttribute('x-if');
         node.$aindex -= 1;
 
-        const _value = Compile.parse(this.$vm, _cond);
+        const _value = Compile.getValue(this.$vm, _cond);
 
         node.style.visibility = _value.value ? 'visible' : 'hidden';
 
@@ -165,7 +252,7 @@ class Compile{
         let _itemName = _attr.split(':')[0];
         let _listName = _attr.split(':')[1];
 
-        let _data = Compile.parse(this.$vm, _listName);
+        let _data = Compile.getValue(this.$vm, _listName);
 
         // 保存
         let _parent = node.parentNode;
@@ -236,7 +323,7 @@ class Compile{
             let _res = '';
             attr.value.split('+').forEach((item)=>{
                 if(!/'/g.test(item)) {
-                    let _value = Compile.parse(this.$vm, item.replace(' ', ''));
+                    let _value = Compile.getValue(this.$vm, item.replace(' ', ''));
                     _res += _value.value;
 
                     new Watcher(_value.parent, _value.key, _callback);
@@ -277,7 +364,7 @@ class Compile{
                 while(_matchArg = _reArg.exec(_argsText)) {
 
                     !/'/g.test(_matchArg[1])
-                        ? _args.push(Compile.parse(this.$vm, _matchArg[1]).value)
+                        ? _args.push(Compile.getValue(this.$vm, _matchArg[1]).value)
                         : _args.push(_matchArg[1].replace(/'/g, '')) ;
 
                 }
@@ -295,7 +382,7 @@ class Compile{
         node.removeAttribute('x-model');
         node.$aindex -= 1;
 
-        let _data = Compile.parse(this.$vm, _model);
+        let _data = Compile.getValue(this.$vm, _model);
         node.tagName === 'INPUT' ? node.value = _data.value : node.innerText = _data.value;
 
         node.addEventListener('input', function (event) {
@@ -312,15 +399,32 @@ class Compile{
      * @param path {string}: details.age
      * @returns {*}
      */
-    static parse(data, path) {
+    static getValue(data, path) {
         const _list = path.split('.');
 
         let _data = data;
-        let _parent;
+        let _parent = data;
         let _key;
 
         _list.forEach((item) => {
-            !_data ? console.log('#parse:', _parent, item) : '';
+            !_data ? console.log('#getValue:', _parent, item) : '';
+
+            if((['Function', 'Array', 'Object', 'Reflect',
+                    'String', 'Number', 'RegExp'].indexOf(item) !== -1)
+                // 阻止遍历字符串的方法
+                || (typeof _data === 'string' && (typeof _data[item] === 'function' || item === 'length'))
+                // 阻止遍历数组的方法
+                || (Array.isArray(_data) && (['concat', 'separator', 'pop', 'push',
+                    'reverse', 'shift', 'slice', 'sort', 'splice', 'unshift'].indexOf(item) !== -1 || item === 'length'))){
+
+                console.log('#getValue:', 'build-in', item);
+                return _data === data ? null : { value: _data, parent: _parent, key: _key };
+            }
+
+            if(!_data || !_data[item]){
+                console.log('#getValue:', _parent, item);
+                return null;
+            }
 
             _parent = _data;
             _key = item;

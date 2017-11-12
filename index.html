@@ -8,12 +8,11 @@
     <script type="text/javascript" rel="script" src="minx/compile.js"></script>
     <script type="text/javascript" rel="script" src="minx/minx.js"></script>
     <script type="text/javascript" rel="script" src="index.js"></script>
-    <script src="https://unpkg.com/vue"></script>
 </head>
 <body>
 
 <div id="root" :class="title">
-    <h3> {{ title }} </h3>
+    <h3> {{ title }} - {{ name['first'].split('').reverse().join('') }} - {{ name['first'] + name['last'] }}</h3>
     <div>
         <div><a x-attr:href="url">{{ user }}的BLOG</a></div>
         <button x-on:click="click('Hello')">CLICK TO SAY: Hello</button>
