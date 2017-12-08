@@ -90,6 +90,6 @@ window.onload = function () {
         }
     });
 
-    console.log(minx);
+    // console.log(minx);
 };
 

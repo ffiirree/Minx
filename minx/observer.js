@@ -146,7 +146,7 @@ class Observer {
 
                 set: function (val) {
                     if(val !== _old) {
-                        console.log(`${_old}--->${val}`);
+                        // console.log(`${_old}--->${val}`);
                         _old = val;
 
                         _childOb = Observer.observe(val);
