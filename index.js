@@ -7,6 +7,16 @@ window.onload = function () {
         user: 'ffiirree',
         message: "Minx is a MVVM framework.",
         url: 'https://firstsnow.me',
+        name: {
+          first: 'first',
+          last: 'last'
+        },
+
+        fns: {
+          print(str) {
+              return 'hello, ' + str;
+          }
+        },
 
         list: [
             {

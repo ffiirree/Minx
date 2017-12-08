@@ -9,7 +9,7 @@
 <body>
 
 <div id="root" :class="title">
-    <h3> {{ title }} </h3>
+    <h3> {{ title }} - {{ name['first'].split('').reverse().join('') }} - {{ name['first'] + name['last'] }}</h3>
     <div>
         <div><a x-attr:href="url">{{ user }}的BLOG</a></div>
         <button x-on:click="click('Hello')">CLICK TO SAY: Hello</button>
@@ -31,7 +31,7 @@
         <ul :id="title">
             <li x-for="todo:list">
                 <p x-attr:href="url+'/'+todo.id">创建人：{{ todo.creator }} - {{ message }} </p>
-                <!--<input title="input" x-model="todo.creator">-->
+                <input title="input" x-model="todo.creator">
                 <p>时间: {{ todo.date }}</p>
                 <p>事件：{{ todo.content }}</p>
                 <ol>
@@ -48,7 +48,7 @@
                 <p>事件：{{ todo.content }}</p>
                 <ol>
                     <li x-for="member:todo.members">
-                        <span>{{ member.name }}</span>
+                        <span>{{ member.name }} {{message}}</span>
                     </li>
                 </ol>
             </li>
