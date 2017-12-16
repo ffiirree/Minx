@@ -407,7 +407,10 @@ class Compile{
         let _key;
 
         _list.forEach((item) => {
-            !_data ? console.log('#getValue:', _parent, item) : '';
+            if(!_data || !(item in _data)){
+                console.log('#getValue[null]:', _parent, item);
+                return null;
+            }
 
             if((['Function', 'Array', 'Object', 'Reflect',
                     'String', 'Number', 'RegExp'].indexOf(item) !== -1)
@@ -417,13 +420,8 @@ class Compile{
                 || (Array.isArray(_data) && (['concat', 'separator', 'pop', 'push',
                     'reverse', 'shift', 'slice', 'sort', 'splice', 'unshift'].indexOf(item) !== -1 || item === 'length'))){
 
-                console.log('#getValue:', 'build-in', item);
+                console.log('#getValue[build-in]:', item);
                 return _data === data ? null : { value: _data, parent: _parent, key: _key };
-            }
-
-            if(!_data || !(item in _data)){
-                console.log('#getValue:', _parent, item);
-                return null;
             }
 
             _parent = _data;

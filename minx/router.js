@@ -2,7 +2,27 @@ function  Router() {}
 
 Router.hash = {
     get (key) {
-        return key ? new RegExp(key + '=([^&]+)').exec(this.value)[1] : this.value;
+        if(key && this.value) {
+            let temp = new RegExp(key + '=([^&]+)').exec(this.value);
+            if(temp) {
+                return temp[1];
+            }
+        }
+        return null;
+    },
+
+    set(key, value) {
+        let pattern = new RegExp(key + '=([^&]+)');
+        let _hash = key + '=' + value.toString();
+        pattern.exec(this.value)
+            ? _hash = this.value.replace(pattern, _hash)
+            : _hash = this.value + "&" + _hash;
+
+        window.location.hash = '!/' + _hash;
+    },
+
+    change(callback) {
+        window.onhashchange = callback;
     }
 };
 
