@@ -3,13 +3,13 @@
 ## Minx是一个简单的MVVM框架.
 
 ## 功能
- - [y] {{ xxx }}
- - [n] x-html
- - [y] x-model
- - [y] x-if
- - [y] x-for
- - [y] :/x-attr:[attr]
- - [y] x-on:[event]
+ - [x] {{ xxx }}
+ - [ ] x-html
+ - [x] x-model
+ - [x] x-if
+ - [x] x-for
+ - [x] :/x-attr:[attr]
+ - [x] x-on:[event]
  
  ### 插值
  #### 文本 
@@ -73,5 +73,12 @@ Router.hash.value = { scope: 0, page: 2 }; // url#!/scope=0&page=2
 // 获取hash参数值
 Router.hash.get('scope'); // 0
 Router.hash.get('page');  // 2
+
+// 设置参数值
+Router.hash.set('scope', 2); // url#!/scope=2&page=2
+Router.hash.set('page', 5);  // url#!/scope=2&page=5
+
+// 绑定事件
+Router.hash.change(()=>{alter('change!')});
 
 ```
