@@ -418,10 +418,7 @@ class Compile{
         let _key;
 
         _list.forEach((item) => {
-            if(!_data || !(item in _data)){
-                console.log('#getValue[null]:', _parent, item);
-                return null;
-            }
+            !_data ? console.log('#getValue[null]:', _parent, item) : '';
 
             if((['Function', 'Array', 'Object', 'Reflect',
                     'String', 'Number', 'RegExp'].indexOf(item) !== -1)
@@ -433,6 +430,12 @@ class Compile{
 
                 console.log('#getValue[build-in]:', item);
                 return _data === data ? null : { value: _data, parent: _parent, key: _key };
+            }
+
+            // 没有检查item的类别，不能放到该函数开头检查
+            if(!_data || !(item in _data)){
+                console.log('#getValue[null]:', _parent, item);
+                return null;
             }
 
             _parent = _data;
