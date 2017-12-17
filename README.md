@@ -35,6 +35,12 @@
     <div>{{ todo.creator }}</div>
 </li>
 ```
+或者使用索引
+```html
+<li x-for="(todo:index):list">
+    <div>{{ todo.creator }}</div>
+</li>
+```
 
 #### x-attr:[attr]: 为节点添加属性
 可以使用字符串进行拼接

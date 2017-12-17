@@ -247,7 +247,16 @@ class Compile{
         let _attr = node.getAttribute('x-for');
         node.removeAttribute('x-for');
 
-        let _itemName = _attr.split(':')[0];
+        let _item = _attr.split(':')[0];
+        let _itemName = _item;
+        let _indexName = null;
+        if(/\(/.exec(_item)) {
+            let match = /\( *([a-zA-Z\$]+[\w]*), *([a-zA-Z\$]+[\w]*) *\)/g.exec(_item);
+            _itemName = match[1];
+            _indexName = match[2];
+        }
+
+
         let _listName = _attr.split(':')[1];
 
         let _data = Compile.getValue(this.$vm, _listName);
@@ -256,12 +265,13 @@ class Compile{
         let _parent = node.parentNode;
         let _subs = [];
 
-        _data.value.forEach(item =>{
+        _data.value.forEach((item, index) =>{
             const _clone = node.cloneNode(true);
             _clone.removeAttribute('x-for');
 
             let item_data = {};
             item_data[_itemName] = item;
+            if(_indexName) item_data[_indexName] = index;
             item_data.__proto__ = this.$vm;
 
             new Observer(item_data);
@@ -291,11 +301,12 @@ class Compile{
 
                 subs = [];
                 // 重新渲染
-                val.forEach(item =>{
+                val.forEach((item, index) =>{
                     const _clone = node_.cloneNode(true);
 
                     let item_data = {};
                     item_data[_itemName] = item;
+                    if(_indexName) item_data[_indexName] = index;
                     item_data.__proto__ = _this.$vm;
                     let _c = new Compile(_clone, item_data);
 
